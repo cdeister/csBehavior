@@ -1,3 +1,4 @@
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 // csStateBehavior v0.99 -- 32 bit version (teensy)
@@ -22,19 +23,19 @@
 // ***** Initialize All The Things ********
 // ****************************************
 //
-// Include config vars
-#include "header.h"
 
 #include <math.h>
 
 // Builtin Libraries
 #include <Wire.h>
 #include <FlexiTimer2.h>
+#include <SPI.h>
 
 // Other people's libraries
 #include <Adafruit_NeoPixel.h>
 #include "HX711.h"
-#include <Adafruit_MCP4725.h>
+
+#include <MCP4922.h>
 
 
 //-----------------------------
@@ -53,6 +54,9 @@
 // b) Digital Input Pins
 #define scaleData  29
 #define scaleClock  28
+
+#define dacGate1 38
+#define dacGate2 39
 
 // c) Digital Interrupt Input Pins
 #define motionPin 36
@@ -82,6 +86,8 @@ elapsedMillis stateTime;
 elapsedMicros headerTime;
 elapsedMicros loopTime;
 
+uint32_t dacNum = 5;
+
 // e) UARTs (Hardware Serial Lines)
 #define visualSerial Serial1 // out to a computer running psychopy
 #define dashSerial Serial3 // out to a csDashboard
@@ -93,9 +99,9 @@ elapsedMicros loopTime;
 #define DAC1 A21
 #define DAC2 A22
 
-// ~~~ MCP DACs
-//Adafruit_MCP4725 dac3;
-//Adafruit_MCP4725 dac4;
+// ~~~ MCP DACs (MCP4922)
+MCP4922 mDAC1(11, 13, 33, 37);
+MCP4922 mDAC2(11, 13, 34, 32);
 
 
 // **** Make neopixel object
@@ -116,12 +122,16 @@ HX711 scale(scaleData, scaleClock);
 uint32_t weightOffset = 0;
 float scaleVal = 0;
 
+bool sDacGate1 = 0;
+bool sDacGate2 = 0;
+
 
 uint32_t lickSensorAValue = 0;
 uint32_t genAnalogInput0 = 0;
 uint32_t genAnalogInput1 = 0;
 uint32_t genAnalogInput2 = 0;
 uint32_t genAnalogInput3 = 0;
+uint32_t genAnalogInput4 = 0;
 uint32_t analogAngle = 0;
 
 uint32_t microTimer;
@@ -178,7 +188,7 @@ float evalEverySample = 1.0; // number of times to poll the vStates funtion
 // m/13: max pulses for a stimulus for channel X. m381> will set the number of pulses on DAC1 to 38.
 // ____ Misc.
 // l/14: current value on loadCell
-// z/15: toggle a pin
+// h/15: toggle a pin
 // q/16: Flyback stim dur (in microseconds)
 // e/17: led switch
 // x/18: visStim xPos (times 10)
@@ -186,7 +196,7 @@ float evalEverySample = 1.0; // number of times to poll the vStates funtion
 // z/20: visStim size (times 10)
 
 
-char knownHeaders[] =    {'a', 'r', 'g', 'c', 'o', 's', 'f', 'b', 'n', 'd', 'p', 'v', 't', 'm', 'l', 'z', 'q', 'e', 'x', 'y', 'z'};
+char knownHeaders[] =    {'a', 'r', 'g', 'c', 'o', 's', 'f', 'b', 'n', 'd', 'p', 'v', 't', 'm', 'l', 'h', 'q', 'e', 'x', 'y', 'z'};
 int32_t knownValues[] = { 0,  5, 8000, 0,  0,  4,  2, 1, 0, 90, 10, 0, 0, 0, 0, 0, 100, 1, 2, 0, 10};
 int knownCount = 21;
 
@@ -208,11 +218,12 @@ uint32_t pulseTrainVars[][10] =
   {1, 0, knownValues[9], knownValues[10], 0, knownValues[11], knownValues[12], 0, knownValues[13], 0},
   {1, 0, knownValues[9], knownValues[10], 0, knownValues[11], knownValues[12], 0, knownValues[13], 0},
   {1, 0, knownValues[9], knownValues[10], 0, knownValues[11], knownValues[12], 0, knownValues[13], 0},
-  {1, 0, knownValues[9], knownValues[10], 0, knownValues[11], knownValues[12], 0, knownValues[13], 0}
+  {1, 0, knownValues[9], knownValues[10], 0, 2000, 2, 0, knownValues[13], 0}
 };
+// cad: set default train type of channel 5 to asym cosine.
 
 // stim trains are timed with elapsedMicros timers, which we store in an array to loop with channels.
-elapsedMillis trainTimer[4];
+elapsedMillis trainTimer[5];
 
 
 uint32_t analogOutVals[] = {pulseTrainVars[0][7], pulseTrainVars[1][7], pulseTrainVars[2][7], pulseTrainVars[3][7], pulseTrainVars[4][7]};
@@ -242,23 +253,23 @@ uint32_t knownDashValues[] = {10, 0, 10};
 
 
 void setup() {
+  Serial.begin(19200);
+  Serial.println("yo");
   // Start MCP DACs
-//  dac3.begin(dac3Address); //adafruit A0 pulled high
-//  dac4.begin(dac4Address); // sparkfun A0 pulled low
 
-  // todo: Setup Cyclops
-  // Start the device
+  SPI.begin();
 
   // neopixels
   strip.begin();
   strip.show();
-  strip.setBrightness(100);
+  strip.setBrightness(255);
   setStrip(2);
 
   // loadcell
   scale.set_scale(calibration_factor);
   scale.set_offset(zero_factor);
   scale.tare();
+
 
 
   // Analog In/Out
@@ -275,6 +286,16 @@ void setup() {
   digitalWrite(syncPin, LOW);
   pinMode(sessionOver, OUTPUT);
   digitalWrite(sessionOver, LOW);
+  //  pinMode(scaleData, OUTPUT);
+
+
+
+
+  pinMode(dacGate1, OUTPUT);
+  pinMode(dacGate2, OUTPUT);
+
+  pinMode(33, OUTPUT);
+  pinMode(34, OUTPUT);
 
   pinMode(rewardPin, OUTPUT);
   digitalWrite(rewardPin, LOW);
@@ -289,7 +310,6 @@ void setup() {
   // Serial Lines
   dashSerial.begin(115200);
   visualSerial.begin(115200);
-  Serial.begin(19200);
   delay(20);
 
   // Start Program Timer
@@ -348,7 +368,7 @@ void vStates() {
 
     pollColorChange();
     pollToggle();
-    pollRelays(); // Let other users use the trigger lines
+    // pollRelays(); // Let other users use the trigger lines
     // b) body for state 0
     genericStateBody();
 
@@ -391,6 +411,8 @@ void vStates() {
         genericHeader(1);
         blockStateChange = 0;
       }
+      stimGen(pulseTrainVars);
+      setAnalogOutValues(analogOutVals, pulseTrainVars);
       genericStateBody();
     }
 
@@ -403,10 +425,8 @@ void vStates() {
         visStim(2);
         blockStateChange = 0;
       }
-      analogOutVals[0] = 0;
-      analogOutVals[1] = 0;
-      analogOutVals[2] = 0;
-      analogOutVals[3] = 0;
+      stimGen(pulseTrainVars);
+      setAnalogOutValues(analogOutVals, pulseTrainVars);
       genericStateBody();
     }
 
@@ -522,7 +542,6 @@ void setPulseTrainVars(int recVar, int recVal) {
   int parsedChan = recVal % 10;  // ones digit is the channel
   int parsedValue = recVal * 0.1; // divide by 10 and round up
 
-
   // IPI
   if (recVar == 9) {
     pulseTrainVars[parsedChan - 1][2] = parsedValue;
@@ -531,15 +550,15 @@ void setPulseTrainVars(int recVar, int recVal) {
     pulseTrainVars[parsedChan - 1][3] = parsedValue;
   }
   else if (recVar == 11) {
-    // if you push pulses; make sure stop bit is off
     pulseTrainVars[parsedChan - 1][5] = parsedValue;
-    pulseTrainVars[parsedChan - 1][1] = 0;
   }
   else if (recVar == 12) {
     pulseTrainVars[parsedChan - 1][6] = parsedValue;
   }
   else if (recVar == 13) {
+    // if you push pulses; make sure stop bit is off
     pulseTrainVars[parsedChan - 1][8] = parsedValue;
+    pulseTrainVars[parsedChan - 1][1] = 0;
   }
 }
 
@@ -568,9 +587,9 @@ void dataReport() {
   Serial.print(',');
   Serial.print(genAnalogInput1);
   Serial.print(',');
-  Serial.print(genAnalogInput2);
+  Serial.print(pulseTrainVars[0][7]);
   Serial.print(',');
-  Serial.println(genAnalogInput3);
+  Serial.println(pulseTrainVars[0][8]);
 }
 
 int flagReceive(char varAr[], int32_t valAr[]) {
@@ -713,7 +732,7 @@ void genericHeader(int stateNum) {
   resetHeaders();
   headerStates[stateNum] = 1;
 
-  for ( int i = 0; i < 4; i++) {
+  for ( int i = 0; i < 5; i++) {
     trainTimer[i] = 0;
   }
 
@@ -724,7 +743,10 @@ void genericHeader(int stateNum) {
   analogOutVals[2] = 0;
   analogOutVals[3] = 0;
   analogOutVals[4] = 0;
-  
+  sDacGate1 = digitalRead(dacGate1);
+  sDacGate2 = digitalRead(dacGate2);
+  pollToggle();
+
   pulseTrainVars[0][0] = 1;
   pulseTrainVars[1][0] = 1;
   pulseTrainVars[2][0] = 1;
@@ -736,6 +758,12 @@ void genericHeader(int stateNum) {
   pulseTrainVars[2][1] = 0;
   pulseTrainVars[3][1] = 0;
   pulseTrainVars[4][1] = 0;
+
+  pulseTrainVars[0][7] = 0;
+  pulseTrainVars[1][7] = 0;
+  pulseTrainVars[2][7] = 0;
+  pulseTrainVars[3][7] = 0;
+  pulseTrainVars[4][7] = 0;
 
   pulseTrainVars[0][9] = 0;
   pulseTrainVars[1][9] = 0;
@@ -755,6 +783,7 @@ void genericStateBody() {
   genAnalogInput1 = analogRead(genA1);
   genAnalogInput2 = analogRead(genA2);
   genAnalogInput3 = analogRead(genA3);
+  pollToggle();
   analogAngle = analogRead(analogMotion);
   writeAnalogOutValues(analogOutVals);
   if (scale.is_ready()) {
@@ -835,9 +864,11 @@ void flybackStim_On() {
       stimGen(pulseTrainVars);
       analogWrite(DAC1, pulseTrainVars[0][7]);
       analogWrite(DAC2, pulseTrainVars[1][7]);
+      mDAC1.Set(pulseTrainVars[2][7], pulseTrainVars[3][7]);
     }
     analogWrite(DAC1, 0);
     analogWrite(DAC2, 0);
+    mDAC1.Set(0, 0);
   }
 }
 
@@ -847,60 +878,79 @@ void flybackStim_On() {
 // **************  Pulse Train Function ***************************
 // ****************************************************************
 void setAnalogOutValues(uint32_t dacVals[], uint32_t pulseTracker[][10]) {
-  dacVals[0] = pulseTracker[0][7];
-  dacVals[1] = pulseTracker[1][7];
-  dacVals[2] = pulseTracker[2][7];
-  dacVals[3] = pulseTracker[3][7];
+  if (sDacGate1 == 0) {
+    dacVals[0] = pulseTracker[0][7];
+    dacVals[1] = pulseTracker[1][7];
+  }
+  else if (sDacGate1 == 1) {
+    dacVals[0] = pulseTracker[1][7];
+    dacVals[1] = pulseTracker[0][7];
+  }
+  if (sDacGate2 == 0) {
+    dacVals[2] = pulseTracker[2][7];
+    dacVals[3] = pulseTracker[3][7];
+  }
+  else if (sDacGate2 == 1) {
+    dacVals[2] = pulseTracker[3][7];
+    dacVals[3] = pulseTracker[2][7];
+  }
   dacVals[4] = pulseTracker[4][7];
 }
 
 void writeAnalogOutValues(uint32_t dacVals[]) {
   analogWrite(DAC1, dacVals[0]);
   analogWrite(DAC2, dacVals[1]);
-//  dac3.setVoltage(dacVals[2], false);
-//  dac4.setVoltage(dacVals[3], false);
-//  dac5.setVoltage(dacVals[4], false);
+  mDAC1.Set(dacVals[2], dacVals[3]);
+  mDAC2.Set(dacVals[4], dacVals[4]);
 }
 
 void stimGen(uint32_t pulseTracker[][10]) {
+
   int i;
-  for (i = 0; i < 5; i = i + 1) {
+  int updateCount = 0;
+  for (i = 0; i < dacNum; i = i + 1) {
+    int stimType = pulseTracker[i][6];
+    int pulseState = pulseTracker[i][0];
+
+    //**************************
     // *** 0 == Square Waves
-    if (pulseTracker[i][6] == 0) {
-      // PULSE STATE
-      if (pulseTracker[i][0] == 1) {
-        // if we are over the pulse time:
-        // a) reset the timer, b) move to baseline state
+    //**************************
+    if (stimType == 0) {
+
+      // a) pulse state
+      if (pulseState == 1) {
+        // *** 1) check for exit condition (pulse over)
         if (trainTimer[i] >= pulseTracker[i][3]) {
           trainTimer[i] = 0; // reset counter
           pulseTracker[i][0] = 0; // stop pulsing
           pulseTracker[i][7] = pulseTracker[i][4];
-          if (pulseTracker[i][8]  > 0) {
-            pulseTracker[i][8] = pulseTracker[i][8] - 1;
-            if (pulseTracker[i][8]<=0){
-              pulseTracker[i][1] = 1;
-              pulseTracker[i][8] = 0;
-            }
-          }
+          // *** 1b) This is where we keep track of pulses completed. (99999 prevents pulse counting)
+          updateCount = 1;
         }
+
+        // *** 2) determine pulse amplitude
         else {
-          // if we still have pulse time, and we haven't flipped the stop bit, then pulse.
-          if (pulseTracker[i][1]==0) {
+          if (pulseTracker[i][1] == 0) {
             pulseTracker[i][7] = pulseTracker[i][5]; // 5 is the pulse amp; 7 is the current output.
           }
-          else if (pulseTracker[i][1]==1) {
+          else if (pulseTracker[i][1] == 1) {
             pulseTracker[i][7] = pulseTracker[i][4]; // baseline
           }
         }
       }
 
-      // BASLINE/DELAY STATE
-      else if (pulseTracker[i][0] == 0) {
+      // b) baseline/delay state
+      else if (pulseState == 0) {
         // if we are out of baseline time; move to stim state
         if (trainTimer[i] >=  pulseTracker[i][2]) {
           trainTimer[i] = 0; // reset counter
           pulseTracker[i][0] = 1; // start pulsing
-          pulseTracker[i][7] = pulseTracker[i][5];
+          if (pulseTracker[i][1] == 0) {
+            pulseTracker[i][7] = pulseTracker[i][5];
+          }
+          else if (pulseTracker[i][1] == 1) {
+            pulseTracker[i][7] = pulseTracker[i][4];
+          }
         }
         else {
           // but if we have delay time, then we use baseline
@@ -909,64 +959,61 @@ void stimGen(uint32_t pulseTracker[][10]) {
         }
       }
     }
+
     // add ramp back here
 
     // 2) Asymm Cosine
-    else if (pulseTracker[i][6] == 2) {
-
+    else if (stimType == 2) {
       // PULSE STATE
-      if (pulseTracker[i][0] == 1) {
+      pulseTracker[i][7] = pulseTracker[i][4];
+      if (pulseState == 1) {
         // These pulses idealy have a variable time.
-        if (pulseTracker[i][1] == 0) {
-
-          if (trainTimer[i] <= 10) {
-            pulseTracker[i][10] = 0;
-          }
-
-          else if (trainTimer[i] > 10) {
-            pulseTracker[i][10] = 1;
-          }
-
-          if (pulseTracker[i][10] == 0) {
-            float curTimeSc = PI + ((PI * (trainTimer[i] - 1)) / 10);
-            pulseTracker[i][7] = pulseTracker[i][5] * ((cosf(curTimeSc) + 1) * 0.5); // 5 is the pulse amp; 7 is the current output.
-          }
-          else if (pulseTracker[i][10] == 1) {
-            float curTimeSc = 0 + ((PI * (trainTimer[i] - 1)) / 100);
-            pulseTracker[i][7] = pulseTracker[i][5] * ((cosf(curTimeSc) + 1) * 0.5); // 5 is the pulse amp; 7 is the current output.
-          }
-
-          if (trainTimer[i] > 110) {
-            pulseTracker[i][10] = 0;
-            pulseTracker[i][0] = 0;
-            trainTimer[i] = 0;
-            pulseTracker[i][7] = pulseTracker[i][4];
-            if (pulseTracker[i][8]  > 0) {
-              pulseTracker[i][8] = pulseTracker[i][8] - 1;
-              pulseTracker[i][1] = 1;
-            }
-          }
-
+        if (trainTimer[i] <= 10) {
+          float curTimeSc = PI + ((PI * (trainTimer[i] - 0)) / 10);
+          pulseTracker[i][7] = pulseTracker[i][5] * ((cosf(curTimeSc) + 1) * 0.5); // 5 is the pulse amp; 7 is the current output.
         }
-        else if (pulseTracker[i][1] == 1) {
+        else if ((trainTimer[i] > 10) && (trainTimer[i] < 106)) {
+          float curTimeSc = 0 + ((PI * (trainTimer[i] - 8)) / 100);
+          pulseTracker[i][7] = pulseTracker[i][5] * ((cosf(curTimeSc) + 1) * 0.5); // 5 is the pulse amp; 7 is the current output.
+        }
+        else if (trainTimer[i] >= 106) {
+          pulseTracker[i][0] = 0;
+          trainTimer[i] = 0;
+          pulseTracker[i][7] = pulseTracker[i][4];
+          updateCount = 1;
+        }
+        // if pulse count flips the bit, just do baseline (veto)
+        if (pulseTracker[i][1] == 1) {
           pulseTracker[i][7] = pulseTracker[i][4]; // baseline
         }
       }
 
       // baseline STATE
-      else if (pulseTracker[i][0] == 0) {
+      else if (pulseState == 0) {
+        pulseTracker[i][7] = pulseTracker[i][4];
         if (trainTimer[i] >=  pulseTracker[i][2]) {
           pulseTracker[i][0] = 1;
-          pulseTracker[i][10] = 0;
+          pulseTracker[i][7] = pulseTracker[i][4];
           trainTimer[i] = 0;
-          pulseTracker[i][7] = pulseTracker[i][4];
-        }
-        else {
-          pulseTracker[i][7] = pulseTracker[i][4];
         }
       }
-
     }
+
+    // *** Type Independent Stuff ***
+    // *** This is where we keep track of pulses completed. (99999 prevents pulse counting)
+    if (updateCount==1){
+      if ((pulseTracker[i][8]  > 0) && (pulseTracker[i][8] != 99999)) {
+        pulseTracker[i][8] = pulseTracker[i][8] - 1;
+        if (pulseTracker[i][8] <= 0) {
+          // flip the stop bit
+          pulseTracker[i][1] = 1;
+          // make the pulse number 0 (don't go negative)
+          pulseTracker[i][8] = 0;
+        }
+      }
+      updateCount = 0;
+    }
+    // *** next chan
   }
 }
 
@@ -1004,30 +1051,38 @@ void setStrip(uint32_t stripState) {
 }
 
 void pollToggle() {
-  if (knownValues[15] == rewardPin || knownValues[15] == syncPin || knownValues[15] == ledSwitch) {
-    bool cVal = digitalRead(knownValues[15]);
-    digitalWrite(knownValues[15], 1 - cVal);
-    delay(5);
-    digitalWrite(knownValues[15], cVal);
+  if (knownValues[15] != 0) {
+    int parsedValue = knownValues[15] % 10;  // ones digit is the bool
+    int parsedChan = knownValues[15] * 0.1; // divide by 10 and round up
+
+    if (parsedValue == 2) {
+      digitalWrite(parsedChan, 1);
+    }
+    else if (parsedValue == 1) {
+      digitalWrite(parsedChan, 0);
+    }
+    else {
+      digitalWrite(parsedChan, 0);
+    }
     knownValues[15] = 0;
   }
 }
 
 void pollRelays() {
-  bool rTrig;
-  bool rRwd;
-  rTrig = digitalRead(syncMirror);
-  rRwd = digitalRead(rewardMirror);
-  if (rTrig == 1) {
-    digitalWrite(syncPin, HIGH);
-    delay(5);
-    digitalWrite(syncPin, LOW);
-  }
-  if (rRwd == 1) {
-    digitalWrite(rewardPin, HIGH);
-    delay(5);
-    digitalWrite(rewardPin, LOW);
-  }
+//  bool rTrig;
+//  bool rRwd;
+//  rTrig = digitalRead(syncMirror);
+//  rRwd = digitalRead(rewardMirror);
+//  if (rTrig == 1) {
+//    digitalWrite(syncPin, HIGH);
+//    delay(5);
+//    digitalWrite(syncPin, LOW);
+//  }
+//  if (rRwd == 1) {
+//    digitalWrite(rewardPin, HIGH);
+//    delay(5);
+//    digitalWrite(rewardPin, LOW);
+//  }
 }
 
 void pollTones(uint32_t tonePin, uint32_t toneFreq, uint32_t toneDuration) {
@@ -1053,4 +1108,12 @@ void pollColorChange() {
   else {
     knownValues[8] = 0;
   }
+}
+
+void secSPIWrite(uint32_t value, int csPin) {
+  uint16_t out = (0 << 15) | (1 << 14) | (1 << 13) | (1 << 12) | ( int(value) );
+  digitalWriteFast(csPin, LOW);
+  SPI.transfer(out >> 8);                   //you can only put out one byte at a time so this is splitting the 16 bit value.
+  SPI.transfer(out & 0xFF);
+  digitalWriteFast(csPin, HIGH);
 }
