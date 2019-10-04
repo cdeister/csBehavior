@@ -197,7 +197,7 @@ float evalEverySample = 1.0; // number of times to poll the vStates funtion
 
 
 char knownHeaders[] =    {'a', 'r', 'g', 'c', 'o', 's', 'f', 'b', 'n', 'd', 'p', 'v', 't', 'm', 'l', 'h', 'q', 'e', 'x', 'y', 'z'};
-int32_t knownValues[] = { 0,  5, 8000, 0,  0,  4,  2, 1, 0, 90, 10, 0, 0, 0, 0, 0, 100, 1, 2, 0, 10};
+int32_t knownValues[] = { 0,  5, 8000, 0,  0,  4,  2, 1, 0, 90, 10, 0, 2, 0, 0, 0, 100, 1, 2, 0, 10};
 int knownCount = 21;
 
 
