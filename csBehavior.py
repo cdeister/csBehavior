@@ -2391,9 +2391,9 @@ def sendDACVariables(vTime,pTime,dTime,mTime,tTime):
 		csSer.sendAnalogOutValues(csSer.teensy,'m',optoPulseNum)
 		csVar.serialVarTracker[5] = 1
 	elif csVar.serialVarTracker[6] == 0 and csVar.curStateTime>=tTime:
-		optoWave = [int(csVar.c5_waveform[csVar.tTrial])]
+		optoWave = 2
 		csSer.sendAnalogOutValues(csSer.teensy,'t',optoWave)
-		csVar.serialVarTracker[6] = 1
+		csVar.serialVarTracker[6] = 2
 
 
 # ~~~~~~~~~~~~~~~~~~~~
@@ -2421,16 +2421,18 @@ def runDetectionTask():
 							# we treat state 1 as the begining of a trial
 							# so anything we need to fix between trials ...
 							trialMaintenance()
-						setupVisualStim(10,110)
+
+						sendDACVariables(220,320,420,520,720)	
+						# setupVisualStim(10,110)
 						enforceNoLickRule()
 
 						# state 1 exit:
 						if csVar.curStateTime>csVar.waitTime:
 							csVar.stateSync=0
-							if csVar.contrast[csVar.tTrial]>0:
+							if csVar.c1_amp[csVar.tTrial]>0:
 								csVar.pyState=2
 								csSer.teensy.write('a2>'.encode('utf-8'))
-							elif csVar.contrast[csVar.tTrial]==0:
+							elif csVar.c1_amp[csVar.tTrial]==0:
 								csVar.pyState=3
 								csSer.teensy.write('a3>'.encode('utf-8'))
 					elif csVar.pyState == 2:
