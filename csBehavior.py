@@ -1619,6 +1619,7 @@ class csSerial(object):
 		i = curBuf.find(b"\n")
 		r = curBuf[:i+1]
 		curBuf = curBuf[i+1:]
+
 		
 		echoDecode=bytes()
 		tDataDecode=bytes()
@@ -1631,13 +1632,16 @@ class csSerial(object):
 		tDE=r.find(b"\r")
 
 		if eB>=0 and eE>=1:
+
 			echoDecode=r[eB:eE+1]
 			eR=echoDecode.strip().decode()
 			eR=eR.split(',')
+			
 		if tDB>=0 and tDE>=1:
 			tDataDecode=r[tDB:tDE]
 			sR=tDataDecode.strip().decode()
 			sR=sR.split(',')
+			
 
 		self.curBuf = curBuf
 		self.echoLine = eR
@@ -2179,28 +2183,37 @@ def checkTeensyData():
 	[csSer.serialBuf,eR,tString]=csSer.readSerialBuffer(csSer.teensy,csSer.serialBuf,csVar.sesVarDict['serBufSize'])
 	if len(tString)==csVar.sesVarDict['dStreams']-1:
 		newData =1
+		
 		# handle timing stuff
 		intNum = int(tString[1])
 		tTime = int(tString[2])
 		tStateTime=int(tString[3])
+
 		# if time did not go backward (out of order packet) 
 		# then increment python time, int, and state time.
 		if (tTime >= csVar.curTime):
+			
 			csVar.curTime  = tTime
 			csVar.cutInt = intNum
 			csVar.curStateTime = tStateTime
+			
 		
 		# check the teensy state
 		csSer.tState=int(tString[4])
 		
+		
 		# even if the the data came out of order, we need to assign it to the right part of the array.
 		for x in range(0,csVar.sesVarDict['dStreams']-2):
+
 			csVar.sesData[intNum,x]=int(tString[x+1])
+			
 		csVar.sesData[intNum,csVar.sesVarDict['dStreams']-2]=csVar.pyState # The state python wants to be.
 		csVar.sesData[intNum,csVar.sesVarDict['dStreams']-1]=0 # Thresholded licks
 		csVar.loopCnt=csVar.loopCnt+1
+		
 	
 	return newData
+
 def updatePlots():
 	# d) If we are using the GUI plot updates ever so often.
 	if csGui.useGUI==1:
@@ -2390,10 +2403,10 @@ def sendDACVariables(vTime,pTime,dTime,mTime,tTime):
 		optoPulseNum = [int(csVar.c1_pulseCount[csVar.tTrial]),int(csVar.c2_pulseCount[csVar.tTrial])]
 		csSer.sendAnalogOutValues(csSer.teensy,'m',optoPulseNum)
 		csVar.serialVarTracker[5] = 1
-	elif csVar.serialVarTracker[6] == 0 and csVar.curStateTime>=tTime:
-		optoWave = 2
-		csSer.sendAnalogOutValues(csSer.teensy,'t',optoWave)
-		csVar.serialVarTracker[6] = 2
+	# elif csVar.serialVarTracker[6] == 0 and csVar.curStateTime>=tTime:
+	# 	optoWave = 2
+	# 	csSer.sendAnalogOutValues(csSer.teensy,'t',optoWave)
+	# 	csVar.serialVarTracker[6] = 2
 
 
 # ~~~~~~~~~~~~~~~~~~~~
@@ -2421,13 +2434,16 @@ def runDetectionTask():
 							# we treat state 1 as the begining of a trial
 							# so anything we need to fix between trials ...
 							trialMaintenance()
-
-						sendDACVariables(220,320,420,520,720)	
+						print("hey1")
+						sendDACVariables(220,320,420,520,720)
+						print("hey2")
 						# setupVisualStim(10,110)
 						enforceNoLickRule()
 
 						# state 1 exit:
+						print("hey")
 						if csVar.curStateTime>csVar.waitTime:
+
 							csVar.stateSync=0
 							if csVar.c1_amp[csVar.tTrial]>0:
 								csVar.pyState=2
