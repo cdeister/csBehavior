@@ -1,0 +1,93 @@
+trialCount,1000
+c1_amp_min,0
+c1_amp_max,4095
+c1_amp_steps,[1000]
+c1_amp_probs,"[0.0, 1.0]"
+c1_pulseDur_min,10
+c1_pulseDur_max,10
+c1_pulseDur_steps,[]
+c1_pulseDur_probs,"[1.0, 0.0]"
+c1_interPulseDur_min,90
+c1_interPulseDur_max,90
+c1_interPulseDur_steps,[90]
+c1_interPulseDur_probs,"[1.0, 0.0]"
+c1_pulseCount_min,20
+c1_pulseCount_max,20
+c1_pulseCount_steps,[20]
+c1_pulseCount_probs,"[0.0, 1.0]"
+c2_amp_min,0
+c2_amp_max,4095
+c2_amp_steps,[1000]
+c2_amp_probs,"[0.0, 1.0]"
+c2_pulseDur_min,10
+c2_pulseDur_max,10
+c2_pulseDur_steps,[]
+c2_pulseDur_probs,"[1.0, 0.0]"
+c2_interPulseDur_min,90
+c2_interPulseDur_max,90
+c2_interPulseDur_steps,[90]
+c2_interPulseDur_probs,"[1.0, 0.0]"
+c2_pulseCount_min,20
+c2_pulseCount_max,20
+c2_pulseCount_steps,[20]
+c2_pulseCount_probs,"[0.0, 1.0]"
+c3_amp_min,0
+c3_amp_max,4095
+c3_amp_steps,[1000]
+c3_amp_probs,"[0.0, 1.0]"
+c3_pulseDur_min,10
+c3_pulseDur_max,10
+c3_pulseDur_steps,[]
+c3_pulseDur_probs,"[1.0, 0.0]"
+c3_interPulseDur_min,90
+c3_interPulseDur_max,90
+c3_interPulseDur_steps,[90]
+c3_interPulseDur_probs,"[1.0, 0.0]"
+c3_pulseCount_min,20
+c3_pulseCount_max,20
+c3_pulseCount_steps,[20]
+c3_pulseCount_probs,"[0.0, 1.0]"
+c4_amp_min,0
+c4_amp_max,4095
+c4_amp_steps,[1000]
+c4_amp_probs,"[0.0, 1.0]"
+c4_pulseDur_min,10
+c4_pulseDur_max,10
+c4_pulseDur_steps,[]
+c4_pulseDur_probs,"[1.0, 0.0]"
+c4_interPulseDur_min,90
+c4_interPulseDur_max,90
+c4_interPulseDur_steps,[90]
+c4_interPulseDur_probs,"[1.0, 0.0]"
+c4_pulseCount_min,20
+c4_pulseCount_max,20
+c4_pulseCount_steps,[20]
+c4_pulseCount_probs,"[0.0, 1.0]"
+c5_amp_min,0
+c5_amp_max,4095
+c5_amp_steps,[1000]
+c5_amp_probs,"[0.0, 1.0]"
+c5_pulseDur_min,10
+c5_pulseDur_max,10
+c5_pulseDur_steps,[]
+c5_pulseDur_probs,"[1.0, 0.0]"
+c5_interPulseDur_min,90
+c5_interPulseDur_max,90
+c5_interPulseDur_steps,[90]
+c5_interPulseDur_probs,"[1.0, 0.0]"
+c5_pulseCount_min,20
+c5_pulseCount_max,20
+c5_pulseCount_steps,[20]
+c5_pulseCount_probs,"[0.0, 1.0]"
+c1_mask_min,2
+c1_mask_max,1
+c1_mask_steps,[]
+c1_mask_probs,"[0.3, 0.7]"
+c2_mask_min,1
+c2_mask_max,2
+c2_mask_steps,[]
+c2_mask_probs,"[0.3, 0.7]"
+c5_waveform_min,0
+c5_waveform_max,1
+c5_waveform_steps,2
+c5_waveform_probs,"[0.5, 0.0]"
