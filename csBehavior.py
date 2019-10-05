@@ -1228,10 +1228,10 @@ class csVariables(object):
 		self.optical={'trialCount':1000,\
 		'varsToUse':['c1_amp','c1_pulseDur','c1_interPulseDur','c1_pulseCount',\
 		'c2_amp','c2_pulseDur','c2_interPulseDur','c2_pulseCount','c1_mask','c5_waveform'],\
-		'c1_amp_min':0,'c1_amp_max':4095,'c1_amp_steps':[1000],'c1_amp_probs':[0.0,1.0],\
+		'c1_amp_min':0,'c1_amp_max':4000,'c1_amp_steps':[500,1000,1500,2000,2500,3000,3500],'c1_amp_probs':[0.2,0.4],\
 		'c1_pulseDur_min':10,'c1_pulseDur_max':10,'c1_pulseDur_steps':[],'c1_pulseDur_probs':[1.0,0.0],\
-		'c1_interPulseDur_min':90,'c1_interPulseDur_max':90,'c1_interPulseDur_steps':[90],'c1_interPulseDur_probs':[1.0,0.0],\
-		'c1_pulseCount_min':20,'c1_pulseCount_max':20,'c1_pulseCount_steps':[20],'c1_pulseCount_probs':[0.0,1.0],\
+		'c1_interPulseDur_min':80,'c1_interPulseDur_max':80,'c1_interPulseDur_steps':[80],'c1_interPulseDur_probs':[1.0,0.0],\
+		'c1_pulseCount_min':10,'c1_pulseCount_max':10,'c1_pulseCount_steps':[10],'c1_pulseCount_probs':[0.0,1.0],\
 		'c2_amp_min':0,'c2_amp_max':4095,'c2_amp_steps':[1000],'c2_amp_probs':[0.0,1.0],\
 		'c2_pulseDur_min':10,'c2_pulseDur_max':10,'c2_pulseDur_steps':[],'c2_pulseDur_probs':[1.0,0.0],\
 		'c2_interPulseDur_min':90,'c2_interPulseDur_max':90,'c2_interPulseDur_steps':[90],'c2_interPulseDur_probs':[1.0,0.0],\
@@ -1682,6 +1682,9 @@ class csSerial(object):
 		# Analog output is handled by passing a variable and specifying a channel (1-X)
 		for x in sendValues:
 			comObj.write('{}{}{}>'.format(varChar,sendValues[0],x+1).encode('utf-8'))
+			print("sent")
+			#comObj.write('v{}1>'.format(int(csVar.c1_amp[csVar.tTrial])).encode('utf-8'))
+			#[int(csVar.c1_amp[csVar.tTrial])]
 
 
 	def sendVisualValues(self,comObj,trialNum):
@@ -2388,19 +2391,19 @@ def sendDACVariables(vTime,pTime,dTime,mTime,tTime):
 
 
 	if csVar.serialVarTracker[2] == 0 and csVar.curStateTime>=vTime:
-		optoVoltages = [int(csVar.c1_amp[csVar.tTrial]),int(csVar.c2_amp[csVar.tTrial])]
+		optoVoltages = [int(csVar.c1_amp[csVar.tTrial])]
 		csSer.sendAnalogOutValues(csSer.teensy,'v',optoVoltages)
 		csVar.serialVarTracker[2] = 1
 	elif csVar.serialVarTracker[3] == 0 and csVar.curStateTime>=pTime:
-		optoPulseDurs = [int(csVar.c1_pulseDur[csVar.tTrial]),int(csVar.c2_pulseDur[csVar.tTrial])]
+		optoPulseDurs = [int(csVar.c1_pulseDur[csVar.tTrial])]
 		csSer.sendAnalogOutValues(csSer.teensy,'p',optoPulseDurs)
 		csVar.serialVarTracker[3] = 1
 	elif csVar.serialVarTracker[4] == 0 and csVar.curStateTime>=dTime:
-		optoIPIs = [int(csVar.c1_interPulseDur[csVar.tTrial]),int(csVar.c2_interPulseDur[csVar.tTrial])]
+		optoIPIs = [int(csVar.c1_interPulseDur[csVar.tTrial])]
 		csSer.sendAnalogOutValues(csSer.teensy,'d',optoIPIs)
 		csVar.serialVarTracker[4] = 1
 	elif csVar.serialVarTracker[5] == 0 and csVar.curStateTime>=mTime:
-		optoPulseNum = [int(csVar.c1_pulseCount[csVar.tTrial]),int(csVar.c2_pulseCount[csVar.tTrial])]
+		optoPulseNum = [int(csVar.c1_pulseCount[csVar.tTrial])]
 		csSer.sendAnalogOutValues(csSer.teensy,'m',optoPulseNum)
 		csVar.serialVarTracker[5] = 1
 	# elif csVar.serialVarTracker[6] == 0 and csVar.curStateTime>=tTime:
@@ -2434,14 +2437,20 @@ def runDetectionTask():
 							# we treat state 1 as the begining of a trial
 							# so anything we need to fix between trials ...
 							trialMaintenance()
-						print("hey1")
-						sendDACVariables(220,320,420,520,720)
-						print("hey2")
+							print("a")
+							print('v{}1>'.format(int(csVar.c1_amp[csVar.tTrial])).encode('utf-8'))
+							csSer.teensy.write('v{}1>'.format(int(csVar.c1_amp[csVar.tTrial])).encode('utf-8'))
+							csSer.teensy.write('d{}1>'.format(int(csVar.c1_interPulseDur[csVar.tTrial])).encode('utf-8'))
+							csSer.teensy.write('m{}1>'.format(int(csVar.c1_pulseCount[csVar.tTrial])).encode('utf-8'))
+							print("sent")
+						
+						
+						
 						# setupVisualStim(10,110)
 						enforceNoLickRule()
 
 						# state 1 exit:
-						print("hey")
+						
 						if csVar.curStateTime>csVar.waitTime:
 
 							csVar.stateSync=0
@@ -2648,4 +2657,3 @@ elif useGUI==0:
 		runDetectionTask()
 
 
-dd

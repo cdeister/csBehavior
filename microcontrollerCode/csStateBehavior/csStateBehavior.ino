@@ -412,7 +412,11 @@ void vStates() {
         blockStateChange = 0;
       }
       stimGen(pulseTrainVars);
-      setAnalogOutValues(analogOutVals, pulseTrainVars);
+      
+      analogOutVals[0] = 0;
+      analogOutVals[1] = 0;
+      analogOutVals[2] = 0;
+      analogOutVals[3] = 0;
       genericStateBody();
     }
 
@@ -426,6 +430,7 @@ void vStates() {
         blockStateChange = 0;
       }
       stimGen(pulseTrainVars);
+      
       setAnalogOutValues(analogOutVals, pulseTrainVars);
       genericStateBody();
     }
