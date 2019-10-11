@@ -413,6 +413,10 @@ void vStates() {
       }
       stimGen(pulseTrainVars);
       setAnalogOutValues(analogOutVals, pulseTrainVars);
+      analogOutVals[0] = 0;
+      analogOutVals[1] = 0;
+      analogOutVals[2] = 0;
+      analogOutVals[3] = 0;
       genericStateBody();
     }
 
@@ -587,7 +591,7 @@ void dataReport() {
   Serial.print(',');
   Serial.print(genAnalogInput1);
   Serial.print(',');
-  Serial.print(pulseTrainVars[0][7]);
+  Serial.print(analogOutVals[0]);
   Serial.print(',');
   Serial.println(pulseTrainVars[0][8]);
 }
