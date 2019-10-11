@@ -218,7 +218,7 @@ uint32_t pulseTrainVars[][10] =
   {1, 0, knownValues[9], knownValues[10], 0, knownValues[11], knownValues[12], 0, knownValues[13], 0},
   {1, 0, knownValues[9], knownValues[10], 0, knownValues[11], knownValues[12], 0, knownValues[13], 0},
   {1, 0, knownValues[9], knownValues[10], 0, knownValues[11], knownValues[12], 0, knownValues[13], 0},
-  {1, 0, knownValues[9], knownValues[10], 0, 2000, 2, 0, knownValues[13], 0}
+  {1, 0, knownValues[9], knownValues[10], 0, 2000, 0, 0, knownValues[13], 0}
 };
 // cad: set default train type of channel 5 to asym cosine.
 
@@ -412,7 +412,7 @@ void vStates() {
         blockStateChange = 0;
       }
       stimGen(pulseTrainVars);
-      setAnalogOutValues(analogOutVals, pulseTrainVars);
+
       analogOutVals[0] = 0;
       analogOutVals[1] = 0;
       analogOutVals[2] = 0;
@@ -430,6 +430,7 @@ void vStates() {
         blockStateChange = 0;
       }
       stimGen(pulseTrainVars);
+      
       setAnalogOutValues(analogOutVals, pulseTrainVars);
       genericStateBody();
     }
